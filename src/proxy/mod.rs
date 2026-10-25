@@ -26,9 +26,9 @@ async fn proxy(
     req: Request<hyper::body::Incoming>,
     client_addr: SocketAddr,
     socks_addr: SocketAddr,
-    auth: Option<&'static Auth>,
-    allowed_domains: Option<&'static Vec<String>>,
-    basic_http_header: Option<&HeaderValue>,
+    auth: Option<Auth>,
+    allowed_domains: Option<Vec<String>>,
+    basic_http_header: Option<HeaderValue>,
 ) -> Result<Response<BoxBody<Bytes, hyper::Error>>> {
     let mut authenticated = false;
     let hm = req.headers();
@@ -83,7 +83,7 @@ async fn proxy(
             tokio::task::spawn(async move {
                 match hyper::upgrade::on(req).await {
                     Ok(upgraded) => {
-                        if let Err(e) = tunnel(upgraded, addr, socks_addr, auth).await {
+                        if let Err(e) = tunnel(upgraded, addr, socks_addr, auth.as_ref()).await {
                             warn!("server io error: {}", e);
                         };
                     }
@@ -181,9 +181,9 @@ pub async fn proxy_request(
     stream: TcpStream,
     client_addr: SocketAddr,
     socks_addr: SocketAddr,
-    auth_details: Option<&'static Auth>,
-    allowed_domains: Option<&'static Vec<String>>,
-    basic_http_header: Option<&'static HeaderValue>,
+    auth_details: Option<Auth>,
+    allowed_domains: Option<Vec<String>>,
+    basic_http_header: Option<HeaderValue>,
 ) -> color_eyre::Result<()> {
     let io = TokioIo::new(stream);
 
@@ -192,9 +192,9 @@ pub async fn proxy_request(
             req,
             client_addr,
             socks_addr,
-            auth_details,
-            allowed_domains,
-            basic_http_header,
+            auth_details.clone(),
+            allowed_domains.clone(),
+            basic_http_header.clone(),
         )
     });
 

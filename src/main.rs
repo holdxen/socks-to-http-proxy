@@ -90,16 +90,16 @@ async fn main_entry(args: Cli) -> Result<()> {
     let auth_details = args
         .auth
         .map(|auth| Auth::new(auth.username, auth.password));
-    let auth_details = &*Box::leak(Box::new(auth_details));
+    // let auth_details = &*Box::leak(Box::new(auth_details));
     let addr = SocketAddr::from((args.listen_ip, port));
     let allowed_domains = args.allowed_domains;
-    let allowed_domains = &*Box::leak(Box::new(allowed_domains));
+    // let allowed_domains = &*Box::leak(Box::new(allowed_domains));
     let http_basic = args
         .http_basic
         .map(|hb| format!("Basic {}", general_purpose::STANDARD.encode(hb)))
         .map(|hb| HeaderValue::from_str(&hb))
         .transpose()?;
-    let http_basic = &*Box::leak(Box::new(http_basic));
+    // let http_basic = &*Box::leak(Box::new(http_basic));
 
     let listener = TcpListener::bind(addr)
         .await
@@ -109,14 +109,17 @@ async fn main_entry(args: Cli) -> Result<()> {
 
     loop {
         let (stream, client_addr) = listener.accept().await?;
+        let auth_details = auth_details.clone();
+        let allowed_domains = allowed_domains.clone();
+        let http_basic = http_basic.clone();
         tokio::task::spawn(async move {
             if let Err(e) = proxy_request(
                 stream,
                 client_addr,
                 socks_addr,
-                auth_details.as_ref(),
-                allowed_domains.as_ref(),
-                http_basic.as_ref(),
+                auth_details,
+                allowed_domains,
+                http_basic,
             )
             .await
             {
